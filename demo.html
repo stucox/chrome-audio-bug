@@ -1,0 +1,92 @@
+<!doctype html>
+<html class="no-js" lang="">
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<title></title>
+		<meta name="description" content="">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+	</head>
+	<body>
+
+<main>
+	<p>Chrome Canary 42.0 has trouble repeatedly firing short samples with an <a href="https://developer.mozilla.org/en-US/docs/Web/API/AudioBufferSourceNode"><code>AudioBufferSourceNode.start(<i>when</i>)</code></a> if <code><i>when</i></code> is in the past.</p>
+	<p>According to <a href="http://webaudio.github.io/web-audio-api/#methods-5">the spec</a>, the following cases should have identical behaviour: the sample should play immediately.</p>
+	<ol>
+		<li><code>AudioBufferSourceNode.start()</code> (<code><i>when</i></code> is <code>undefined</code>)</li>
+		<li><code>AudioBufferSourceNode.start(0)</code></li>
+		<li><code>AudioBufferSourceNode.start(audioContext.currentTime)</code></li>
+	</ol>
+	<p>Only the last of these works reliably.</p>
+	<p>Strangely, Chrome 41.0 (stable) doesn’t suffer from this.</p>
+	<h2>Demo 1</h2>
+	<p>This button fires a gunshot sample with <code>AudioBufferSourceNode.start()</code> (no <code>when</code> parameter).</p>
+	<button id="btn1">BANG!</button>
+	<p>Clicking once is usually fine, but clicking rapidly kills the audio. <b>Refresh the page</b> before trying other demos.</p>
+
+	<h2>Demo 2</h2>
+	<p>The same goes for <code>AudioBufferSourceNode.start(0)</code>.</p>
+	<button id="btn2">BANG!</button>
+
+	<h2>Demo 3</h2>
+	<p>But <code>AudioBufferSourceNode.start(audioContext.currentTime)</code> is fine.</p>
+	<button id="btn3">BANG!</button>
+	<p>Click it all you like.</p>
+	<p>This still works even after Demo 1 &amp; Demo 2 have frozen, even though it uses the same <code>AudioContext</code>.</p>
+</main>
+
+<hr>
+
+<footer>Created by <a href="http://stucox.com">Stu Cox</a>.</footer>
+
+<script>
+var audioCtx = new AudioContext();
+var btn1 = document.querySelector('#btn1');
+var btn2 = document.querySelector('#btn2');
+var btn3 = document.querySelector('#btn3');
+var sampleBuffer;
+
+function loadSample (callback) {
+	var request = new XMLHttpRequest();
+
+	request.open('GET', 'm4a1.mp3', true);
+	request.responseType = 'arraybuffer';
+
+	request.addEventListener('load', function (evt) {
+		window.sampleBuffer = request.response;
+	});
+	request.send();
+}
+
+function playSample (when) {
+	var sampleData = sampleBuffer.slice(0);
+
+	audioCtx.decodeAudioData(sampleData, function (buffer) {
+		var source = audioCtx.createBufferSource();
+		source.buffer = buffer;
+		source.connect(audioCtx.destination);
+		if (when === undefined) {
+			source.start();
+		}
+		else {
+			source.start(when);
+		}
+	});
+}
+
+loadSample();
+btn1.addEventListener('click', function (evt) {
+	playSample();
+});
+btn2.addEventListener('click', function (evt) {
+	playSample(0);
+});
+btn3.addEventListener('click', function (evt) {
+	playSample(audioCtx.currentTime);
+});
+
+
+</script>
+
+	</body>
+</html>
